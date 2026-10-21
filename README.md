@@ -10,7 +10,7 @@ A single-file times tables app for a young learner. Open `index.html` in any bro
 - **Fix my tricky facts**: appears on the start screen once something has been missed; a round drawn only from facts not yet fixed.
 - Once a fact is familiar, practice sometimes asks for the missing number (? × 7 = 56), the first step toward division.
 
-**Toon friends**: original drawings of eight friendly Toons from the Roblox game Dandy's World (Dandy, Astro, Pebble, Poppy, Vee, Sprout, Boxten, Shelly; six on phones) peek up from the bottom of the screen. One hops up and cheers on each right answer and on each square claimed in Four in a Row; they all jump after a good round or a win. These are fan-made drawings for personal use, not official artwork.
+**Toon friends**: original drawings of eight friendly Toons from the Roblox game Dandy's World (Dandy, Astro (drawn as a full moon face), Pebble, Poppy, Vee, Sprout, Boxten, Shelly; six on phones) peek up from the bottom of the screen. One hops up and cheers on each right answer and on each square claimed in Four in a Row; they all jump after a good round or a win. These are fan-made drawings for personal use, not official artwork.
 
 Questions lean toward facts the learner has missed. Keyboard works throughout: digits, Backspace, Enter, Escape.
 Progress is saved in the browser's localStorage on that device.
