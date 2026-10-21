@@ -262,8 +262,10 @@
 
   /* Phones: keep the question and the whole number pad on one screen */
   @media (max-width: 480px) {
-    .topbar { flex-wrap: nowrap; }
-    .brand h1 { font-size: 18px; white-space: nowrap; }
+    .topbar { flex-wrap: nowrap; gap: 8px; }
+    .brand { min-width: 0; }
+    .brand h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pill { padding: 5px 10px; }
     .panel { padding: 14px; }
     .chips { gap: 7px; }
     .chip { font-size: 19px; border-radius: 12px; }
@@ -285,6 +287,63 @@
   .pop { animation: pop .35s ease-out; }
   @keyframes pop { 0% { transform: scale(.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
   .shake { animation: shake .35s; }
+
+  /* Four in a Row */
+  .mode.four { grid-column: 1 / -1; min-height: 0; background: #FFC23A; color: #3A2A00; box-shadow: 0 6px 0 #D89A0E; }
+  .mode.four .big-glyph { opacity: .3; }
+  .four-layout {
+    display: grid; gap: 16px 24px; align-items: start; margin-top: 16px;
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "board top" "board clips" "board info";
+  }
+  @media (max-width: 760px) {
+    .four-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "top" "board" "clips" "info"; }
+  }
+  .f-top { grid-area: top; display: grid; gap: 4px; }
+  .f-board-area { grid-area: board; display: grid; gap: 10px; }
+  .f-clips { grid-area: clips; display: grid; gap: 10px; }
+  .f-info { grid-area: info; display: grid; gap: 14px; }
+  .f-status { font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.25; min-height: 1.25em; }
+  .f-note { color: var(--muted); min-height: 1.5em; }
+  .f-eq { font-family: var(--display); font-weight: 700; font-size: 34px; font-variant-numeric: tabular-nums; display: flex; gap: .3em; align-items: center; }
+  .f-eq .ca { color: var(--tomato); } .f-eq .cb { color: var(--sky); } .f-eq .op { color: var(--muted); font-weight: 500; }
+  .fboard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding: 8px; background: var(--card); border: 2px solid var(--line); border-radius: 20px; }
+  .fsq {
+    aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 10px; border: 2px solid var(--line); background: var(--paper);
+    font-family: var(--display); font-weight: 700; font-size: clamp(16px, 4.6vw, 24px); color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .fsq:disabled { cursor: default; opacity: 1; }
+  .fboard.finding .fsq { border-color: var(--grape); border-style: dashed; }
+  .fboard.finding .fsq:hover { background: var(--card); }
+  .fsq.kid, .fboard.finding .fsq.kid { background: var(--sun); border: 2px solid var(--sun-deep); color: #3A2A00; }
+  .fsq.robo, .fboard.finding .fsq.robo { background: var(--grape); border: 2px solid var(--grape-deep); color: var(--on-accent); }
+  .fsq.last { outline: 3px solid var(--grape); outline-offset: 2px; }
+  .fsq.reveal { outline: 4px solid var(--tomato); outline-offset: 2px; animation: pulse .7s ease-in-out 3; }
+  .fsq.winsq { box-shadow: inset 0 0 0 4px var(--mint); }
+  @keyframes pulse { 50% { transform: scale(1.12); } }
+  .f-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 15px; }
+  .f-legend span { display: inline-flex; gap: 6px; align-items: center; }
+  .f-legend i { width: 18px; height: 18px; border-radius: 5px; display: inline-block; }
+  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+  .ftag { font-family: var(--display); font-weight: 700; font-size: 15px; padding: 4px 10px; border-radius: 8px; color: #fff; }
+  .ftag.a { background: var(--tomato); } .ftag.b { background: var(--sky); color: var(--on-accent); }
+  .fstrip { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
+  .fclip {
+    height: 46px; min-width: 0; padding: 0; border-radius: 10px; border: 2px solid var(--line); background: var(--card);
+    font-family: var(--display); font-weight: 600; font-size: 20px; box-shadow: 0 3px 0 var(--line);
+  }
+  .fclip:disabled { cursor: default; box-shadow: none; color: var(--muted); }
+  #fClip0 .fclip.on { background: var(--tomato); border-color: var(--tomato-deep); color: #fff; box-shadow: 0 3px 0 var(--tomato-deep); }
+  #fClip1 .fclip.on { background: var(--sky); border-color: var(--sky-deep); color: var(--on-accent); box-shadow: 0 3px 0 var(--sky-deep); }
+  .f-rules { background: var(--learn-bg); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; font-size: 16px; }
+  .f-rules strong { font-family: var(--display); font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) { .fsq.reveal { animation: none; } }
+  @media (max-width: 480px) {
+    .frow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .ftag { justify-self: start; font-size: 13px; padding: 2px 8px; }
+    .f-status { font-size: 20px; }
+  }
   @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
   @media (prefers-reduced-motion: reduce) {
     .pop, .shake { animation: none; }
@@ -344,6 +403,11 @@
         <h3>My Progress</h3>
         <p>A square turns green when you get it right quickly 3 times in a row.</p>
         <span class="big-glyph" aria-hidden="true">✓</span>
+      </button>
+      <button class="mode four" data-go="four">
+        <h3>Four in a Row</h3>
+        <p>A board game against Robo. Move a clip, multiply, and claim the answer. Get four squares in a line to win.</p>
+        <span class="big-glyph" aria-hidden="true">6×7</span>
       </button>
     </div>
     <div class="summary-line">
@@ -426,6 +490,49 @@
         <div class="tip"><strong>Trick</strong><p id="tipText"></p></div>
         <div class="row">
           <button class="btn mint" id="learnPractice">Practise this table</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOUR IN A ROW -->
+  <section class="screen" id="screen-four" hidden>
+    <div class="hello">
+      <h2>Four in a Row</h2>
+      <p class="muted" id="fTally"></p>
+    </div>
+    <div class="four-layout">
+      <div class="f-top">
+        <p class="f-status" id="fStatus" aria-live="polite"></p>
+        <p class="f-note" id="fNote" aria-live="polite"></p>
+        <p class="f-eq" id="fEq" aria-hidden="true"></p>
+      </div>
+      <div class="f-board-area">
+        <div class="fboard" id="fBoard" role="group" aria-label="Game board"></div>
+        <div class="f-legend">
+          <span><i style="background:var(--sun)"></i>Your squares</span>
+          <span><i style="background:var(--grape)"></i>Robo's squares</span>
+        </div>
+      </div>
+      <div class="f-clips">
+        <div class="frow"><span class="ftag a">Clip A</span><div class="fstrip" id="fClip0" role="group" aria-label="Clip A"></div></div>
+        <div class="frow"><span class="ftag b">Clip B</span><div class="fstrip" id="fClip1" role="group" aria-label="Clip B"></div></div>
+      </div>
+      <div class="f-info">
+        <div class="row">
+          <button class="btn mint" id="fNew">New game</button>
+          <div class="row">
+            <span class="label">Robo is</span>
+            <div class="seg" role="group" aria-label="How hard Robo plays">
+              <button id="fEasy" aria-pressed="true">Friendly</button>
+              <button id="fClever" aria-pressed="false">Clever</button>
+            </div>
+          </div>
+        </div>
+        <div class="f-rules">
+          <strong>How to play</strong>
+          <p>Each turn, move one clip to a new number. Multiply the two clip numbers, then tap the answer on the board to claim it. If you tap the wrong square, you miss your turn. Get four squares in a row (across, down or diagonal) before Robo does.</p>
+          <p>Think ahead: which answers can you make next turn, and which ones are you leaving for Robo?</p>
         </div>
       </div>
     </div>
@@ -522,6 +629,7 @@
     window.scrollTo(0, 0);
     if (name === "home") renderHome();
     if (name === "progress") renderProgress();
+    if (name === "four") renderFour();
   }
 
   function renderStars() { $("#starCount").textContent = stars; }
@@ -904,6 +1012,203 @@
     if (btn && !$("#pad").hidden) { btn.classList.add("hit"); setTimeout(() => btn.classList.remove("hit"), 90); }
     press(k);
   });
+
+  // ---------- Four in a Row ----------
+  // The classroom "Product Game": two clips sit on a 1–9 strip. Each turn a
+  // player moves one clip and claims the product of the two clips on the board.
+  const BOARD = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36, 40, 42, 45, 48, 49, 54, 56, 63, 64, 72, 81];
+  const LINES = (() => {
+    const L = [], at = (r, c) => r * 6 + c, four = [0, 1, 2, 3];
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
+      if (c <= 2) L.push(four.map((i) => at(r, c + i)));
+      if (r <= 2) L.push(four.map((i) => at(r + i, c)));
+      if (r <= 2 && c <= 2) L.push(four.map((i) => at(r + i, c + i)));
+      if (r <= 2 && c >= 3) L.push(four.map((i) => at(r + i, c - i)));
+    }
+    return L;
+  })();
+  const ROBO_MS = 1300;
+  let g = null, gameSeq = 0;
+  let tally = store.get("four:tally", { kid: 0, robo: 0, draw: 0 });
+  if (!settings.robo) settings.robo = "easy";
+
+  function newGame() {
+    const kidFirst = g ? !g.kidFirst : true; // take turns going first
+    g = { id: ++gameSeq, kidFirst, clips: [null, null], owner: Array(36).fill(null), phase: "kid", product: 0, turns: 0, win: null, reveal: null, lastRobo: null };
+    fNote("");
+    if (kidFirst) kidTurn(); else roboTurn();
+    renderFour();
+  }
+  const fStatus = (t) => { $("#fStatus").textContent = t; };
+  const fNote = (t) => { $("#fNote").textContent = t; };
+  const bothPlaced = () => g.clips[0] != null && g.clips[1] != null;
+
+  function kidTurn() {
+    g.phase = "kid";
+    fStatus(g.clips[0] == null && g.clips[1] == null ? "You go first! Put clip A on any number."
+      : !bothPlaced() ? "Put your clip on any number. Then find the answer on the board."
+      : "Your turn. Move clip A or clip B to a new number.");
+  }
+
+  function kidPick(row, n) {
+    if (!g || g.phase !== "kid") return;
+    if (!bothPlaced() && g.clips[row] != null) return;
+    if (bothPlaced() && g.clips[row] === n) { fStatus("Clip " + "AB"[row] + " is already on " + n + ". Move a clip to a new number."); return; }
+    sfx.tap();
+    g.clips[row] = n;
+    if (!bothPlaced()) { renderFour(); return roboTurn(); }
+    g.product = g.clips[0] * g.clips[1];
+    g.phase = "find";
+    fStatus(g.clips[0] + " × " + g.clips[1] + " = ?  Tap the answer on the board.");
+    renderFour();
+    const first = $("#fBoard .fsq"); if (first) first.focus({ preventScroll: true });
+  }
+
+  function kidFind(i) {
+    if (!g || g.phase !== "find") return;
+    const [a, b] = g.clips, p = g.product, j = BOARD.indexOf(p);
+    const ok = BOARD[i] === p;
+    // Board finds count as right answers, but only timed practice builds "know it".
+    record(a, b, ok, Infinity);
+    if (ok && g.owner[j] == null) {
+      g.owner[j] = "kid"; stars++; renderStars(); sfx.right();
+      fNote("Yes! " + a + " × " + b + " = " + p + ". That square is yours.");
+    } else if (ok) {
+      sfx.tap(); fNote(a + " × " + b + " = " + p + ", but that square was already taken.");
+    } else {
+      sfx.wrong(); g.reveal = j; fNote("Oops, " + a + " × " + b + " = " + p + ". No square this time.");
+    }
+    save(); g.turns++;
+    endTurn("kid");
+  }
+
+  function endTurn(who) {
+    const line = LINES.find((L) => L.every((k) => g.owner[k] === who));
+    if (line) return gameOver(who, line);
+    if (g.owner.every(Boolean) || g.turns >= 120) return gameOver(null);
+    if (who === "kid") roboTurn(); else kidTurn();
+    renderFour();
+  }
+
+  function roboTurn() {
+    g.phase = "robo";
+    fStatus("Robo is thinking…");
+    renderFour();
+    const id = g.id;
+    setTimeout(() => {
+      if (!g || g.id !== id) return;
+      const mv = chooseRoboMove();
+      g.clips[mv.row] = mv.n; g.reveal = null;
+      if (!bothPlaced()) { fNote("Robo put clip " + "AB"[mv.row] + " on " + mv.n + "."); kidTurn(); renderFour(); return; }
+      const p = g.clips[0] * g.clips[1], j = BOARD.indexOf(p), took = g.owner[j] == null;
+      if (took) g.owner[j] = "robo";
+      g.lastRobo = j; g.turns++;
+      fNote("Robo moved clip " + "AB"[mv.row] + " to " + mv.n + ": " + g.clips[0] + " × " + g.clips[1] + " = " + p + (took ? "." : ", but it was already taken."));
+      endTurn("robo");
+    }, ROBO_MS);
+  }
+
+  function movesFor(clips) {
+    const out = [], empty = clips[0] == null ? 0 : clips[1] == null ? 1 : -1;
+    for (let row = 0; row < 2; row++) {
+      if (empty >= 0 && row !== empty) continue;
+      for (let n = 1; n <= 9; n++) if (empty >= 0 || n !== clips[row]) out.push({ row, n });
+    }
+    return out;
+  }
+  const after = (clips, mv) => { const c = clips.slice(); c[mv.row] = mv.n; return c; };
+  const wouldWin = (owner, j, who) => LINES.some((L) => L.includes(j) && L.every((k) => k === j || owner[k] === who));
+
+  function chooseRoboMove() {
+    const clever = settings.robo === "clever";
+    const scored = movesFor(g.clips).map((mv) => {
+      const c = after(g.clips, mv);
+      if (c[0] == null || c[1] == null) return { mv, open: true, win: false, s: Math.random() }; // opening placement
+      const j = BOARD.indexOf(c[0] * c[1]);
+      const open = g.owner[j] == null;
+      const win = open && wouldWin(g.owner, j, "robo");
+      let s = open ? 0 : -50;
+      if (open) {
+        if (win) s += 1000;
+        if (clever && wouldWin(g.owner, j, "kid")) s += 300; // block
+        for (const L of LINES) if (L.includes(j)) {
+          const mine = L.filter((k) => g.owner[k] === "robo").length, theirs = L.filter((k) => g.owner[k] === "kid").length;
+          if (!theirs) s += (mine + 1) ** 2;
+          if (clever && !mine) s += theirs ** 2 * 0.8;
+        }
+      }
+      if (clever) {
+        // avoid leaving clips where the kid can win next turn
+        const owner = g.owner.slice(); if (open) owner[j] = "robo";
+        if (movesFor(c).some((r) => { const k = BOARD.indexOf(after(c, r)[0] * after(c, r)[1]); return owner[k] == null && wouldWin(owner, k, "kid"); })) s -= 400;
+      }
+      return { mv, open, win, s: s + Math.random() * 0.5 };
+    });
+    // Friendly Robo plays loosely and sometimes misses its own win. Tuned by
+    // simulation: a kid who looks for good moves wins about 80% of games.
+    if (!clever && Math.random() < 0.75) {
+      const wins = scored.filter((x) => x.win);
+      if (wins.length && Math.random() < 0.6) return wins[0].mv;
+      const open = scored.filter((x) => x.open), pool = open.length ? open : scored;
+      return pool[Math.floor(Math.random() * pool.length)].mv;
+    }
+    scored.sort((x, y) => y.s - x.s);
+    return scored[0].mv;
+  }
+
+  function gameOver(who, line) {
+    g.phase = "over"; g.win = line || null;
+    if (who === "kid") { tally.kid++; stars += 5; renderStars(); fStatus("You win! Four in a row! +5 stars"); sfx.fanfare(); confetti(); }
+    else if (who === "robo") { tally.robo++; fStatus("Robo got four in a row. Want a rematch?"); sfx.wrong(); }
+    else { tally.draw++; fStatus("It's a draw!"); }
+    store.set("four:tally", tally); save();
+    renderFour();
+    $("#fNew").focus({ preventScroll: true });
+  }
+
+  function renderFour() {
+    if (!g) return newGame();
+    $("#fTally").textContent = "You " + tally.kid + "  ·  Robo " + tally.robo + (tally.draw ? "  ·  Draws " + tally.draw : "");
+    const [a, b] = g.clips, dash = "_";
+    $("#fEq").innerHTML = "<span class='ca'>" + (a ?? dash) + "</span><span class='op'>×</span><span class='cb'>" + (b ?? dash) + "</span><span class='op'>=</span><span>" +
+      (a != null && b != null && g.phase !== "find" ? a * b : "?") + "</span>";
+    const board = $("#fBoard"); board.innerHTML = "";
+    board.classList.toggle("finding", g.phase === "find");
+    BOARD.forEach((p, i) => {
+      const own = g.owner[i], btn = document.createElement("button");
+      btn.className = "fsq" + (own ? " " + own : "") + (g.win && g.win.includes(i) ? " winsq" : "") +
+        (g.reveal === i ? " reveal" : "") + (g.lastRobo === i && own === "robo" && g.phase !== "over" ? " last" : "");
+      btn.textContent = p;
+      btn.disabled = g.phase !== "find";
+      btn.setAttribute("aria-label", p + (own === "kid" ? ", yours" : own === "robo" ? ", Robo's" : ""));
+      btn.addEventListener("click", () => kidFind(i));
+      btn.addEventListener("keydown", (e) => {
+        const d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 6, ArrowUp: -6 }[e.key];
+        if (d == null) return;
+        e.preventDefault();
+        const t = board.children[i + d]; if (t) t.focus();
+      });
+      board.appendChild(btn);
+    });
+    const placing = !bothPlaced();
+    [0, 1].forEach((row) => {
+      const strip = $("#fClip" + row); strip.innerHTML = "";
+      for (let n = 1; n <= 9; n++) {
+        const btn = document.createElement("button");
+        btn.className = "fclip" + (g.clips[row] === n ? " on" : "");
+        btn.textContent = n;
+        btn.disabled = g.phase !== "kid" || (placing && g.clips[row] != null);
+        btn.setAttribute("aria-label", "Move clip " + "AB"[row] + " to " + n);
+        btn.addEventListener("click", () => kidPick(row, n));
+        strip.appendChild(btn);
+      }
+    });
+    $("#fEasy").setAttribute("aria-pressed", settings.robo !== "clever");
+    $("#fClever").setAttribute("aria-pressed", settings.robo === "clever");
+  }
+  $("#fNew").addEventListener("click", () => { sfx.tap(); newGame(); });
+  $("#fEasy").addEventListener("click", () => { settings.robo = "easy"; save(); renderFour(); });
+  $("#fClever").addEventListener("click", () => { settings.robo = "clever"; save(); renderFour(); });
 
   // ---------- progress ----------
   function renderProgress() {
