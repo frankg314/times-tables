@@ -83,7 +83,8 @@
   .muted { color: var(--muted); }
   .label { font-family: var(--display); font-weight: 600; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 
-  button { font: inherit; color: inherit; cursor: pointer; }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  .question:focus { outline: none; }
   button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
 
   /* Header */
@@ -102,6 +103,8 @@
     font-variant-numeric: tabular-nums;
   }
   .pill svg { width: 22px; height: 22px; }
+  .icon-btn.sound { padding: 6px 10px; line-height: 0; }
+  .icon-btn.sound svg { width: 24px; height: 24px; }
   .icon-btn { background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 6px 14px; font-family: var(--display); font-weight: 600; font-size: 15px; }
 
   /* Chunky buttons */
@@ -124,7 +127,7 @@
   .chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
   @media (min-width: 640px) { .chips { grid-template-columns: repeat(12, 1fr); } }
   .chip {
-    aspect-ratio: 1; min-height: 44px; border-radius: 14px; border: 2px solid var(--line); background: var(--paper);
+    aspect-ratio: 1; min-width: 0; border-radius: 14px; border: 2px solid var(--line); background: var(--paper);
     font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--muted);
     transition: transform .08s;
   }
@@ -255,6 +258,27 @@
   .confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
 
   .note { margin-top: 10px; font-size: 15px; }
+  #trickyBtn { font-size: 17px; padding: 10px 16px; }
+
+  /* Phones: keep the question and the whole number pad on one screen */
+  @media (max-width: 480px) {
+    .topbar { flex-wrap: nowrap; }
+    .brand h1 { font-size: 18px; white-space: nowrap; }
+    .panel { padding: 14px; }
+    .chips { gap: 7px; }
+    .chip { font-size: 19px; border-radius: 12px; }
+    .brand-mark { width: 38px; height: 38px; font-size: 24px; }
+  }
+  @media (max-height: 800px) {
+    .topbar { margin-bottom: 12px; }
+    .quiz-top { margin-bottom: 12px; }
+    .quiz { gap: 12px; }
+    .question { padding: 16px 14px; gap: 4px; border-radius: 22px; }
+    .sum { font-size: clamp(40px, 11vw, 68px); }
+    .feedback { font-size: 19px; }
+    .pad { gap: 10px; }
+    .key { height: 58px; font-size: 28px; }
+  }
 
   #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 20; width: 100%; height: 100%; }
 
@@ -277,7 +301,7 @@
     </button>
     <div class="top-actions">
       <span class="pill" title="Stars you have earned"><span id="starSvg"></span><span id="starCount">0</span><span class="sr" style="position:absolute;left:-9999px">stars</span></span>
-      <button class="icon-btn" id="soundBtn" aria-pressed="true">Sound on</button>
+      <button class="icon-btn sound" id="soundBtn" aria-pressed="true" aria-label="Sound"></button>
     </div>
   </header>
 
@@ -318,13 +342,14 @@
       </button>
       <button class="mode progress" data-go="progress">
         <h3>My Progress</h3>
-        <p>A square turns green when you get it right 3 times in a row.</p>
+        <p>A square turns green when you get it right quickly 3 times in a row.</p>
         <span class="big-glyph" aria-hidden="true">✓</span>
       </button>
     </div>
     <div class="summary-line">
       <span class="label" id="knownLabel"></span>
       <div class="meter" aria-hidden="true"><span id="knownBar" style="width:0%"></span></div>
+      <button class="btn danger" id="trickyBtn" hidden></button>
     </div>
   </section>
 
@@ -336,11 +361,8 @@
       <span class="timer" id="quizCounter" aria-live="off"></span>
     </div>
     <div class="quiz">
-      <div class="question" id="questionCard">
-        <div class="sum" aria-live="polite">
-          <span id="qa">7</span><span class="op">×</span><span id="qb">8</span><span class="op">=</span>
-          <span class="answer-box" id="answerBox" aria-label="Your answer"></span>
-        </div>
+      <div class="question" id="questionCard" tabindex="-1">
+        <div class="sum" id="sum" aria-live="polite"></div>
         <div class="feedback" id="feedback" aria-live="assertive"></div>
       </div>
       <div class="hint" id="hint" hidden>
@@ -458,10 +480,12 @@
     if (s.last === false) return "tricky";
     return "learning";
   }
-  function record(a, b, ok) {
+  // A right answer only builds the "know it" streak when it is recalled, not counted out.
+  const SLOW_MS = 10000, QUICK_MS = 3000;
+  function record(a, b, ok, ms) {
     const k = factKey(a, b);
     const s = stats[k] || { right: 0, wrong: 0, streak: 0, last: null };
-    if (ok) { s.right++; s.streak++; } else { s.wrong++; s.streak = 0; }
+    if (ok) { s.right++; if (ms <= SLOW_MS) s.streak++; } else { s.wrong++; s.streak = 0; }
     s.last = ok;
     stats[k] = s;
   }
@@ -472,6 +496,7 @@
     if (!settings.sound) return;
     try {
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume(); // iOS starts audio suspended
       const t = audio.currentTime + start;
       const o = audio.createOscillator(), g = audio.createGain();
       o.type = type || "sine"; o.frequency.value = freq;
@@ -531,8 +556,12 @@
     for (let a = 1; a <= N; a++) for (let b = a; b <= N; b++) { total++; if (level(a, b) === "known") known++; }
     $("#knownLabel").textContent = "You know " + known + " of " + total + " facts";
     $("#knownBar").style.width = (known / total * 100) + "%";
+    const tricky = trickyFacts().length;
+    $("#trickyBtn").hidden = tricky === 0;
+    $("#trickyBtn").textContent = "Fix my " + tricky + " tricky " + (tricky === 1 ? "fact" : "facts");
     renderStars();
   }
+  $("#trickyBtn").addEventListener("click", () => { sfx.tap(); startQuiz("practice", [], trickyFacts()); });
   function listWords(arr) {
     if (arr.length === 1) return String(arr[0]);
     return arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
@@ -548,9 +577,11 @@
     } else if (go === "learn") { openLearn(settings.tables[0] || 2); }
     else show(go);
   }));
-  $("#homeBtn").addEventListener("click", () => { stopTimer(); show("home"); });
+  $("#homeBtn").addEventListener("click", () => { if (current === "quiz") leaveQuiz(); else show("home"); });
+  const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/>';
   function renderSound() {
-    $("#soundBtn").textContent = settings.sound ? "Sound on" : "Sound off";
+    $("#soundBtn").innerHTML = SPEAKER + (settings.sound ? '<path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>' : '<path d="M17 9.5l5 5M22 9.5l-5 5"/></svg>');
+    $("#soundBtn").title = settings.sound ? "Sound is on" : "Sound is off";
     $("#soundBtn").setAttribute("aria-pressed", settings.sound);
   }
   $("#soundBtn").addEventListener("click", () => { settings.sound = !settings.sound; save(); renderSound(); sfx.tap(); });
@@ -647,12 +678,23 @@
   const PRACTICE_LEN = 10;
   let quiz = null, timerId = null;
 
-  function startQuiz(mode, tables) {
+  // Facts the learner has missed and not yet fixed, within the current range.
+  function trickyFacts() {
+    const out = [];
+    for (let a = 1; a <= settings.upTo; a++) for (let b = a; b <= settings.upTo; b++) {
+      const s = stats[factKey(a, b)];
+      if (s && s.wrong > 0 && s.streak < 3) out.push([a, b]);
+    }
+    return out;
+  }
+
+  // facts: optional list of [a, b] pairs to draw from instead of whole tables
+  function startQuiz(mode, tables, facts) {
     stopTimer();
     quiz = {
-      mode, tables: tables.slice(), n: 0, total: mode === "practice" ? PRACTICE_LEN : Infinity,
+      mode, tables: tables.slice(), facts: facts || null, n: 0, total: mode === "practice" ? PRACTICE_LEN : Infinity,
       right: 0, asked: 0, missed: [], retry: [], last: null, a: 0, b: 0, answer: "", state: "ask",
-      earned: 0, endAt: 0,
+      earned: 0, endAt: 0, missing: false, shownAt: 0,
     };
     show("quiz");
     $("#quizCounter").classList.remove("low");
@@ -674,21 +716,28 @@
   }
 
   function pickFact() {
-    // a missed fact comes back a few questions later
-    if (quiz.retry.length && quiz.retry[0].due <= quiz.n) return quiz.retry.shift().fact;
+    // A missed fact comes back a few questions later. Near the end of the round
+    // it comes back straight away so it never gets dropped.
+    const left = quiz.total - quiz.n;
+    if (quiz.retry.length && (quiz.retry[0].due <= quiz.n || left <= quiz.retry.length)) {
+      quiz.fromRetry = true;
+      return quiz.retry.shift().fact;
+    }
+    quiz.fromRetry = false;
+    const cands = [];
+    if (quiz.facts) quiz.facts.forEach(([t, m]) => cands.push({ t, m }));
+    else for (const t of quiz.tables) for (let m = 1; m <= settings.upTo; m++) cands.push({ t, m });
     const pool = [];
     let sum = 0;
-    for (const t of quiz.tables) {
-      for (let m = 1; m <= settings.upTo; m++) {
-        const k = factKey(t, m);
-        if (quiz.last === k && quiz.tables.length * settings.upTo > 1) continue;
-        const s = stats[k];
-        let w = 1;
-        if (s) w = Math.max(0.35, 1 + s.wrong * 1.5 - Math.min(s.streak, 4) * 0.25 + (s.last === false ? 2 : 0));
-        else w = 1.4;
-        if (m === 1 || t === 1) w *= 0.4; // easy ones show up less
-        pool.push({ t, m, w }); sum += w;
-      }
+    for (const { t, m } of cands) {
+      const k = factKey(t, m);
+      if (quiz.last === k && cands.length > 1) continue;
+      const s = stats[k];
+      let w = 1;
+      if (s) w = Math.max(0.35, 1 + s.wrong * 1.5 - Math.min(s.streak, 4) * 0.25 + (s.last === false ? 2 : 0));
+      else w = 1.4;
+      if (m === 1 || t === 1) w *= 0.4; // easy ones show up less
+      pool.push({ t, m, w }); sum += w;
     }
     let r = Math.random() * sum;
     for (const p of pool) { r -= p.w; if (r <= 0) return Math.random() < 0.5 ? [p.m, p.t] : [p.t, p.m]; }
@@ -696,11 +745,23 @@
     return [p.m, p.t];
   }
 
+  function renderSum() {
+    const box = '<span class="answer-box" id="answerBox"></span>';
+    const op = (s) => '<span class="op">' + s + "</span>";
+    $("#sum").innerHTML = quiz.missing
+      ? box + op("×") + "<span>" + quiz.b + "</span>" + op("=") + "<span>" + quiz.a * quiz.b + "</span>"
+      : "<span>" + quiz.a + "</span>" + op("×") + "<span>" + quiz.b + "</span>" + op("=") + box;
+  }
+
   function nextQuestion() {
     if (quiz.mode === "practice" && quiz.n >= quiz.total) return finishQuiz();
     const [a, b] = pickFact();
-    Object.assign(quiz, { a, b, answer: "", state: "ask", last: factKey(a, b) });
-    $("#qa").textContent = a; $("#qb").textContent = b;
+    // Once a fact is familiar, sometimes ask for the missing number (? × 7 = 56).
+    // This is the first step toward division.
+    const lv = level(a, b);
+    const missing = quiz.mode === "practice" && !quiz.fromRetry && (lv === "known" || lv === "learning") && Math.random() < 0.25;
+    Object.assign(quiz, { a, b, missing, answer: "", state: "ask", last: factKey(a, b), shownAt: performance.now() });
+    renderSum();
     const card = $("#questionCard");
     card.className = "question";
     void card.offsetWidth; card.classList.add("pop");
@@ -716,7 +777,7 @@
     const box = $("#answerBox");
     box.textContent = quiz.answer || "?";
     box.classList.toggle("filled", !!quiz.answer);
-    box.setAttribute("aria-label", quiz.answer ? "Your answer: " + quiz.answer : "Type your answer");
+    box.setAttribute("aria-label", quiz.answer ? "Your answer: " + quiz.answer : quiz.missing ? "Type the missing number" : "Type your answer");
   }
 
   function press(k) {
@@ -731,16 +792,19 @@
   }
 
   function check() {
-    const { a, b } = quiz;
-    const want = a * b;
+    const { a, b, missing } = quiz;
+    const want = missing ? a : a * b;
     const ok = Number(quiz.answer) === want;
+    const ms = performance.now() - quiz.shownAt;
     const card = $("#questionCard");
     quiz.n++; quiz.asked++;
-    record(a, b, ok);
+    record(a, b, ok, ms);
     if (ok) {
       quiz.right++; quiz.earned++; stars++;
       card.className = "question good pop";
-      $("#feedback").textContent = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+      $("#feedback").textContent = ms <= QUICK_MS ? "Quick! " + PRAISE[Math.floor(Math.random() * PRAISE.length)]
+        : ms > SLOW_MS ? "Right! Next time, try to remember it faster."
+        : PRAISE[Math.floor(Math.random() * PRAISE.length)];
       sfx.right(); renderStars(); save();
       quiz.state = "wait";
       setTimeout(() => { if (quiz && quiz.state === "wait" && current === "quiz") nextQuestion(); }, quiz.mode === "clock" ? 450 : 750);
@@ -752,7 +816,7 @@
     if (!quiz.missed.includes(factKey(a, b))) quiz.missed.push(factKey(a, b));
     save();
     if (quiz.mode === "clock") {
-      $("#feedback").textContent = fact + " = " + want;
+      $("#feedback").textContent = fact + " = " + a * b;
       quiz.state = "wait";
       setTimeout(() => { if (quiz && quiz.state === "wait" && current === "quiz") nextQuestion(); }, 1400);
       return;
@@ -761,14 +825,16 @@
     $("#feedback").textContent = "Not quite. Let's look at it.";
     if (quiz.total < PRACTICE_LEN + 5) { quiz.total++; quiz.retry.push({ fact: [b, a], due: quiz.n + 3 }); }
     quiz.state = "review";
-    $("#hintFact").textContent = fact + " = " + want;
-    $("#hintText").textContent = a + (a === 1 ? " row" : " rows") + " of " + b + ". Count along the rows: the last number is the answer.";
+    $("#hintFact").textContent = fact + " = " + a * b;
+    $("#hintText").textContent = missing
+      ? a + (a === 1 ? " row" : " rows") + " of " + b + " make " + a * b + ", so the missing number is " + a + "."
+      : a + (a === 1 ? " row" : " rows") + " of " + b + ". Count along the rows: the last number is the answer.";
     buildArray($("#hintArray"), a, b, true);
     $("#pad").hidden = true; $("#hint").hidden = false;
     $("#hintNext").focus();
   }
-  function continueAfterReview() { nextQuestion(); focusPad(); }
-  function focusPad() { const k = document.querySelector('.key[data-k="5"]'); if (k && document.activeElement && document.activeElement.id === "hintNext") k.focus(); }
+  // Park focus on the card, not a pad key, so Space can't type a stray digit.
+  function continueAfterReview() { nextQuestion(); $("#questionCard").focus({ preventScroll: true }); }
   $("#hintNext").addEventListener("click", continueAfterReview);
 
   function finishQuiz() {
@@ -780,7 +846,7 @@
     show("results");
     let title;
     if (q.mode === "practice") {
-      $("#resLabel").textContent = "Practice round";
+      $("#resLabel").textContent = q.facts ? "Tricky facts round" : "Practice round";
       $("#resScore").innerHTML = q.right + "<small> / " + q.asked + "</small>";
       const pct = q.asked ? q.right / q.asked : 0;
       title = pct === 1 ? "Perfect round!" : pct >= 0.8 ? "Fantastic work!" : pct >= 0.5 ? "Good going. Keep at it!" : "Every try makes your brain stronger.";
@@ -798,13 +864,24 @@
     const list = $("#resTrickyList"); list.innerHTML = "";
     q.missed.forEach((k) => { const [x, y] = k.split("x"); const s = document.createElement("span"); s.textContent = x + " × " + y + " = " + x * y; list.appendChild(s); });
     $("#resTricky").hidden = q.missed.length === 0;
-    $("#againBtn").onclick = () => startQuiz(q.mode, q.tables);
+    $("#againBtn").onclick = () => {
+      if (!q.facts) return startQuiz(q.mode, q.tables);
+      const t = trickyFacts();
+      t.length ? startQuiz("practice", [], t) : startQuiz("practice", settings.tables.length ? settings.tables : [2]);
+    };
     const good = q.mode === "practice" ? q.asked && q.right / q.asked >= 0.8 : q.right >= 10;
     if (good) { sfx.fanfare(); confetti(); }
     $("#againBtn").focus();
   }
   $("#resHome").addEventListener("click", () => show("home"));
-  $("#stopBtn").addEventListener("click", () => { stopTimer(); quiz = null; show("home"); });
+  // Stopping a practice round keeps what was answered; stopping Beat the Clock
+  // early discards it so it can't set a best score.
+  function leaveQuiz() {
+    stopTimer();
+    if (quiz && quiz.mode === "practice" && quiz.asked > 0) return finishQuiz();
+    quiz = null; show("home");
+  }
+  $("#stopBtn").addEventListener("click", leaveQuiz);
 
   $("#pad").addEventListener("click", (e) => { const k = e.target.closest(".key"); if (k) press(k.dataset.k); });
 
@@ -812,7 +889,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "Escape") {
-      if (current !== "home") { e.preventDefault(); stopTimer(); quiz = null; show("home"); }
+      if (current === "quiz") { e.preventDefault(); leaveQuiz(); }
+      else if (current !== "home") { e.preventDefault(); show("home"); }
       return;
     }
     if (current !== "quiz" || !quiz) return;
