@@ -74,7 +74,7 @@
     line-height: 1.5;
     -webkit-tap-highlight-color: transparent;
   }
-  .app { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 48px; }
+  .app { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 16px clamp(72px, 12vw, 120px); }
 
   h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; margin: 0; text-wrap: balance; }
   h2 { font-size: clamp(26px, 5vw, 34px); }
@@ -266,10 +266,13 @@
     .brand { min-width: 0; }
     .brand h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pill { padding: 5px 10px; }
+    .top-actions { gap: 6px; }
+    .icon-btn.sound { padding: 5px 8px; }
     .panel { padding: 14px; }
     .chips { gap: 7px; }
     .chip { font-size: 19px; border-radius: 12px; }
-    .brand-mark { width: 38px; height: 38px; font-size: 24px; }
+    .brand-mark { width: 34px; height: 34px; font-size: 22px; }
+    .brand { gap: 8px; }
   }
   @media (max-height: 800px) {
     .topbar { margin-bottom: 12px; }
@@ -287,6 +290,29 @@
   .pop { animation: pop .35s ease-out; }
   @keyframes pop { 0% { transform: scale(.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
   .shake { animation: shake .35s; }
+
+
+  /* Toon friends peeking up from the bottom edge, behind the content */
+  .app { position: relative; z-index: 1; }
+  .toons {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
+    display: flex; justify-content: space-between; align-items: flex-end; padding-inline: 8px;
+  }
+  .toon { position: relative; width: clamp(46px, 8.5vw, 84px); transform: translateY(30%); }
+  .toon svg { display: block; width: 100%; height: auto; transform-origin: 50% 100%; animation: bob 3.4s ease-in-out infinite; animation-delay: var(--delay, 0s); }
+  @keyframes bob { 50% { transform: translateY(-5%) rotate(var(--tilt, 2deg)); } }
+  .toon.hop svg { animation: hop .75s ease-out; }
+  @keyframes hop { 0% { transform: none; } 35% { transform: translateY(-40%) scale(1.05); } 60% { transform: translateY(-8%); } 80% { transform: translateY(-16%); } 100% { transform: none; } }
+  .bubble {
+    position: absolute; bottom: 104%; left: 50%; transform: translateX(-50%); white-space: nowrap;
+    background: var(--card); color: var(--ink); border: 2px solid var(--line); border-radius: 14px; padding: 4px 10px;
+    font-family: var(--display); font-weight: 600; font-size: 15px; opacity: 0; transition: opacity .2s;
+  }
+  .bubble.show { opacity: 1; }
+  .toon:first-child .bubble { left: 0; transform: none; }
+  .toon:last-child .bubble { left: auto; right: 0; transform: none; }
+  @media (max-width: 480px) { .toon.wide-only { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .toon svg, .toon.hop svg { animation: none; } }
 
   /* Four in a Row */
   .mode.four { grid-column: 1 / -1; min-height: 0; background: #FFC23A; color: #3A2A00; box-shadow: 0 6px 0 #D89A0E; }
@@ -352,6 +378,7 @@
 </style>
 
 <canvas id="confetti" aria-hidden="true"></canvas>
+<div class="toons" id="toons" aria-hidden="true"></div>
 <div class="app">
   <header class="topbar">
     <button class="brand" id="homeBtn" aria-label="Go to the start screen">
@@ -620,6 +647,104 @@
     tap() { tone(520, 0, 0.05, "square", 0.03); },
     fanfare() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.3, "triangle")); },
   };
+
+  // ---------- toon friends ----------
+  // Original drawings of the friendly Toons from the Roblox game Dandy's World.
+  const INK = 'stroke="#2B2640" stroke-width="2.2" stroke-linejoin="round"';
+  const EYES = (y, gap) => '<ellipse cx="' + (50 - gap) + '" cy="' + y + '" rx="3.4" ry="5" fill="#1C1830"/><ellipse cx="' + (50 + gap) + '" cy="' + y + '" rx="3.4" ry="5" fill="#1C1830"/>' +
+    '<circle cx="' + (51 - gap) + '" cy="' + (y - 2) + '" r="1.2" fill="#fff"/><circle cx="' + (51 + gap) + '" cy="' + (y - 2) + '" r="1.2" fill="#fff"/>';
+  const SMILE = (y) => '<path d="M43 ' + y + ' Q50 ' + (y + 7) + ' 57 ' + y + '" fill="none" stroke="#1C1830" stroke-width="2.4" stroke-linecap="round"/>';
+  const PETAL = (cx, cy, rot, fill) => '<ellipse cx="' + cx + '" cy="' + cy + '" rx="13" ry="19" transform="rotate(' + rot + ' ' + cx + ' ' + cy + ')" fill="' + fill + '" ' + INK + '/>';
+  const TOONS = [
+    { name: "Dandy", svg:
+      PETAL(50, 80, 0, "#5DC46B") + PETAL(24, 65, 60, "#4C8DF0") + PETAL(24, 35, 120, "#9B6BEA") +
+      PETAL(50, 20, 0, "#F0524A") + PETAL(76, 35, 60, "#FF9A3C") + PETAL(76, 65, 120, "#FFD84A") +
+      '<rect x="33" y="80" width="34" height="44" rx="12" fill="#FBF5E8" ' + INK + '/>' +
+      '<circle cx="50" cy="50" r="24" fill="#FBF5E8" ' + INK + '/>' + EYES(48, 8) +
+      '<circle cx="37" cy="57" r="4" fill="#9FE6C3"/><circle cx="63" cy="57" r="4" fill="#9FE6C3"/>' + SMILE(59) },
+    { name: "Astro", svg:
+      '<path d="M26 120 C24 88 34 72 52 72 C70 72 80 88 78 120 Z" fill="#3B5BDB" ' + INK + '/>' +
+      '<path d="M40 92 l2 4 4 1 -3 3 1 4 -4 -2 -4 2 1 -4 -3 -3 4 -1z M64 102 l1.5 3 3 .7 -2.2 2 .7 3 -3 -1.5 -3 1.5 .7 -3 -2.2 -2 3 -.7z" fill="#FFE27A"/>' +
+      '<path d="M62 14 A32 32 0 1 0 62 76 A25 25 0 1 1 62 14 Z" fill="#FFE89A" ' + INK + '/>' +
+      '<path d="M27 40 Q32 45 37 40" fill="none" stroke="#1C1830" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<path d="M30 51 l5 5 M35 51 l-5 5" stroke="#1C1830" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M34 61 Q38 64 42 61" fill="none" stroke="#1C1830" stroke-width="2.2" stroke-linecap="round"/>' +
+      '<path d="M44 20 Q60 4 76 14 L66 26 Z" fill="#3B5BDB" ' + INK + '/><circle cx="77" cy="13" r="4.5" fill="#FFE27A" ' + INK + '/>' },
+    { name: "Pebble", svg:
+      '<ellipse cx="50" cy="96" rx="34" ry="28" fill="#A3A9B2" ' + INK + '/>' +
+      '<ellipse cx="50" cy="62" rx="27" ry="24" fill="#A3A9B2" ' + INK + '/>' +
+      '<ellipse cx="25" cy="58" rx="7" ry="15" transform="rotate(18 25 58)" fill="#7D838C" ' + INK + '/>' +
+      '<ellipse cx="75" cy="58" rx="7" ry="15" transform="rotate(-18 75 58)" fill="#7D838C" ' + INK + '/>' +
+      '<circle cx="36" cy="76" r="2.4" fill="#7D838C"/><circle cx="66" cy="50" r="2" fill="#7D838C"/><circle cx="62" cy="98" r="3" fill="#7D838C"/>' +
+      EYES(58, 9) + '<ellipse cx="50" cy="67" rx="4.5" ry="3" fill="#1C1830"/>' +
+      '<path d="M44 71 Q47 75 50 71 Q53 75 56 71" fill="none" stroke="#1C1830" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M48 74 h4 v4 a2 2 0 0 1 -4 0 Z" fill="#FF7A9C"/>' },
+    { name: "Poppy", svg:
+      '<circle cx="50" cy="64" r="31" fill="#7FE3F0" fill-opacity=".9" stroke="#2BB3C7" stroke-width="2.4"/>' +
+      '<ellipse cx="37" cy="49" rx="8" ry="4.5" transform="rotate(-35 37 49)" fill="#fff" opacity=".85"/>' +
+      '<path d="M50 34 L28 22 L30 44 Z M50 34 L72 22 L70 44 Z" fill="#FF6FAE" ' + INK + '/><circle cx="50" cy="34" r="6" fill="#FF8DC0" ' + INK + '/>' +
+      EYES(64, 8) + '<circle cx="37" cy="72" r="4" fill="#FF9DC6" opacity=".8"/><circle cx="63" cy="72" r="4" fill="#FF9DC6" opacity=".8"/>' + SMILE(73) +
+      '<rect x="40" y="94" width="20" height="30" rx="8" fill="#7FE3F0" stroke="#2BB3C7" stroke-width="2.2"/>' },
+    { name: "Vee", svg:
+      '<rect x="38" y="80" width="24" height="44" rx="8" fill="#4FA463" ' + INK + '/>' +
+      '<path d="M50 30 L36 10 M50 30 L66 8" stroke="#2B2640" stroke-width="2.4" stroke-linecap="round"/><circle cx="36" cy="10" r="3.5" fill="#FF6B6B"/><circle cx="66" cy="8" r="3.5" fill="#FF6B6B"/>' +
+      '<rect x="16" y="28" width="68" height="56" rx="12" fill="#7BD389" ' + INK + '/>' +
+      '<rect x="24" y="36" width="52" height="40" rx="7" fill="#173326"/>' +
+      '<rect x="35" y="46" width="7" height="11" rx="2" fill="#8DFFB0"/><rect x="58" y="46" width="7" height="11" rx="2" fill="#8DFFB0"/>' +
+      '<path d="M40 63 Q50 71 60 63" fill="none" stroke="#8DFFB0" stroke-width="3" stroke-linecap="round"/>' +
+      '<circle cx="76" cy="80" r="2.5" fill="#2B2640"/><circle cx="68" cy="80" r="2.5" fill="#2B2640"/>' },
+    { name: "Sprout", svg:
+      '<rect x="36" y="88" width="28" height="36" rx="9" fill="#F3E3C3" ' + INK + '/>' +
+      '<path d="M50 14 C79 15 83 44 76 68 C70 88 30 88 24 68 C17 44 21 15 50 14 Z" fill="#E8384F" ' + INK + '/>' +
+      '<path d="M50 18 L38 6 L46 16 L34 14 L46 22 Z M50 18 L62 6 L54 16 L66 14 L54 22 Z" fill="#46B35A" ' + INK + '/>' +
+      '<g fill="#FFE07A"><ellipse cx="33" cy="36" rx="1.6" ry="2.6"/><ellipse cx="66" cy="34" rx="1.6" ry="2.6"/><ellipse cx="50" cy="30" rx="1.6" ry="2.6"/><ellipse cx="30" cy="62" rx="1.6" ry="2.6"/><ellipse cx="70" cy="60" rx="1.6" ry="2.6"/><ellipse cx="50" cy="72" rx="1.6" ry="2.6"/></g>' +
+      EYES(48, 8) + SMILE(57) +
+      '<path d="M28 80 Q50 92 72 80 L72 90 Q50 100 28 90 Z" fill="#2F7D4A" ' + INK + '/><path d="M62 90 L66 112 L56 110 Z" fill="#2F7D4A" ' + INK + '/>' },
+    { name: "Boxten", wide: true, svg:
+      '<rect x="20" y="36" width="60" height="70" rx="6" fill="#8E6CDB" ' + INK + '/>' +
+      '<rect x="15" y="27" width="70" height="14" rx="4" fill="#A98BEA" ' + INK + '/>' +
+      '<path d="M20 92 H80" stroke="#F2C14E" stroke-width="3"/>' +
+      '<path d="M80 64 h6 M86 64 c0 -10 10 -10 10 0 c0 10 -10 10 -10 0" fill="#F2C14E" stroke="#2B2640" stroke-width="2"/>' +
+      EYES(62, 9) + SMILE(71) +
+      '<path d="M70 6 v14 a4 3 0 1 1 -2 -3 V8 l8 -2 v4" fill="#2B2640" stroke="#2B2640" stroke-width="1.5"/>' },
+    { name: "Shelly", wide: true, svg:
+      '<rect x="34" y="88" width="32" height="36" rx="10" fill="#C99A68" ' + INK + '/>' +
+      '<circle cx="50" cy="72" r="22" fill="#F3DDBB" ' + INK + '/>' +
+      '<path d="M22 56 C20 22 80 22 78 56 Z" fill="#D9B48A" ' + INK + '/>' +
+      '<path d="M54 44 A4 4 0 1 0 46 44 A8 8 0 1 0 58 44 A12 12 0 1 0 36 44 A17 17 0 1 0 68 46" fill="none" stroke="#8A6440" stroke-width="2.4" stroke-linecap="round"/>' +
+      EYES(72, 8) + '<circle cx="38" cy="80" r="3.5" fill="#F4A6A6" opacity=".8"/><circle cx="62" cy="80" r="3.5" fill="#F4A6A6" opacity=".8"/>' + SMILE(80) },
+  ];
+  (function renderToons() {
+    const wrap = $("#toons");
+    TOONS.forEach((t, i) => {
+      const el = document.createElement("div");
+      el.className = "toon" + (t.wide ? " wide-only" : "");
+      el.style.setProperty("--delay", (-i * 0.45) + "s");
+      el.style.setProperty("--tilt", (i % 2 ? -3 : 3) + "deg");
+      el.innerHTML = '<span class="bubble"></span><svg viewBox="0 0 100 124" role="presentation">' + t.svg + "</svg>";
+      wrap.appendChild(el);
+    });
+  })();
+  const visibleToons = () => [...document.querySelectorAll(".toon")].filter((el) => el.offsetParent !== null);
+  function toonHop(el, text, delay) {
+    setTimeout(() => {
+      el.classList.remove("hop"); void el.offsetWidth; el.classList.add("hop");
+      const bubble = el.querySelector(".bubble");
+      if (text) { bubble.textContent = text; bubble.classList.add("show"); }
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.classList.remove("hop"); bubble.classList.remove("show"); }, 1400);
+    }, delay || 0);
+  }
+  // One random friend jumps up and says the praise line.
+  function toonCheer(text) {
+    const els = visibleToons();
+    if (els.length) toonHop(els[Math.floor(Math.random() * els.length)], text);
+  }
+  // Everyone jumps, one after another.
+  function toonParty() {
+    const lines = ["Hooray!", "Woohoo!", "Amazing!", "Yay!", "Go you!", "Wow!", "Super!", "Hip hip!"];
+    visibleToons().forEach((el, i) => toonHop(el, lines[i % lines.length], i * 110));
+  }
 
   // ---------- screens ----------
   let current = "home";
@@ -910,9 +1035,11 @@
     if (ok) {
       quiz.right++; quiz.earned++; stars++;
       card.className = "question good pop";
-      $("#feedback").textContent = ms <= QUICK_MS ? "Quick! " + PRAISE[Math.floor(Math.random() * PRAISE.length)]
+      const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+      $("#feedback").textContent = ms <= QUICK_MS ? "Quick! " + praise
         : ms > SLOW_MS ? "Right! Next time, try to remember it faster."
-        : PRAISE[Math.floor(Math.random() * PRAISE.length)];
+        : praise;
+      toonCheer(ms <= QUICK_MS ? "Quick!" : praise);
       sfx.right(); renderStars(); save();
       quiz.state = "wait";
       setTimeout(() => { if (quiz && quiz.state === "wait" && current === "quiz") nextQuestion(); }, quiz.mode === "clock" ? 450 : 750);
@@ -978,7 +1105,7 @@
       t.length ? startQuiz("practice", [], t) : startQuiz("practice", settings.tables.length ? settings.tables : [2]);
     };
     const good = q.mode === "practice" ? q.asked && q.right / q.asked >= 0.8 : q.right >= 10;
-    if (good) { sfx.fanfare(); confetti(); }
+    if (good) { sfx.fanfare(); confetti(); toonParty(); }
     $("#againBtn").focus();
   }
   $("#resHome").addEventListener("click", () => show("home"));
@@ -1071,7 +1198,7 @@
     // Board finds count as right answers, but only timed practice builds "know it".
     record(a, b, ok, Infinity);
     if (ok && g.owner[j] == null) {
-      g.owner[j] = "kid"; stars++; renderStars(); sfx.right();
+      g.owner[j] = "kid"; stars++; renderStars(); sfx.right(); toonCheer("Yours!");
       fNote("Yes! " + a + " × " + b + " = " + p + ". That square is yours.");
     } else if (ok) {
       sfx.tap(); fNote(a + " × " + b + " = " + p + ", but that square was already taken.");
@@ -1158,7 +1285,7 @@
 
   function gameOver(who, line) {
     g.phase = "over"; g.win = line || null;
-    if (who === "kid") { tally.kid++; stars += 5; renderStars(); fStatus("You win! Four in a row! +5 stars"); sfx.fanfare(); confetti(); }
+    if (who === "kid") { tally.kid++; stars += 5; renderStars(); fStatus("You win! Four in a row! +5 stars"); sfx.fanfare(); confetti(); toonParty(); }
     else if (who === "robo") { tally.robo++; fStatus("Robo got four in a row. Want a rematch?"); sfx.wrong(); }
     else { tally.draw++; fStatus("It's a draw!"); }
     store.set("four:tally", tally); save();
