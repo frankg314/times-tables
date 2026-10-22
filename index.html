@@ -887,7 +887,7 @@
   // ---------- Toon team and buddy ----------
   // Dandy, Astro, Pebble and Shelly are on the team from the start. The rest
   // join as stars add up. Stars are never spent, so friends never leave.
-  const UNLOCK_AT = [0, 0, 0, 0, 10, 20, 35, 50, 70, 90, 115, 140, 170, 200];
+  const UNLOCK_AT = [0, 0, 0, 0, 3, 10, 18, 28, 40, 55, 70, 90, 115, 145];
   const toonSvg = (t) => '<svg viewBox="0 0 100 124" role="presentation">' + t.svg + "</svg>";
   const team = () => TOONS.filter((t, i) => stars >= UNLOCK_AT[i]);
   const nextUnlock = () => { const i = TOONS.findIndex((t, k) => stars < UNLOCK_AT[k]); return i < 0 ? null : { t: TOONS[i], at: UNLOCK_AT[i], from: UNLOCK_AT[i - 1] || 0 }; };
