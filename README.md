@@ -16,6 +16,15 @@ A single-file times tables app for a young learner. Open `index.html` in any bro
 - **Team**: Dandy, Astro, Pebble and Shelly are on the team from the start. The other ten join as stars add up, quickly at first and then a little further apart (3, 10, 18, 28, 40, 55, 70, 90, 115 and 145 stars). The first new friend arrives after just three right answers. Each new friend is announced after a round or game, never in the middle of a question. A locked friend shows as a silhouette with its star target, and a meter shows how many stars until the next friend joins. "Start progress again" also resets the team.
 - The team stands along the bottom edge (one random friend hops up on each right answer and all of them jump after a good round), and team members appear on the start-screen mode cards.
 
+**Moving past the easy tables**: the 1s, 2s, 5s and 10s have easy tricks, so the game keeps nudging toward the others.
+
+- A right answer to a fact without a 1, 2, 5 or 10 (like 7 × 8) earns 2 stars instead of 1.
+- The next challenge is the first of 3, 4, 6, 7, 8, 9, 11, 12 that the learner doesn't know yet. Its chip has a red dashed ring.
+- If every table switched on is one the learner already knows, every third question in Practise and Beat the Clock comes from the next challenge table.
+- A table counts as known when 8 of its 10 facts are green (10 of 12 when going up to × 12).
+
+**Twisted Toons**: original drawings of twisted versions of eight friends (Boxten, Poppy, Cosmo, Shelly, Vee, Astro, Sprout and Dandy), with ink drips, ringed eyes and toothy grins. Each hides in one harder table (3s, 4s, 6s, 7s, 8s, 9s, 11s, 12s) and shows as a shadow until that table is known, when it is announced as caught. Caught Twisted Toons are saved under `ttq:twisted:caught`.
+
 Questions lean toward facts the learner has missed. Keyboard works throughout: digits, Backspace, Enter, Escape.
 Progress is saved in the browser's localStorage on that device.
 
