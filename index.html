@@ -132,6 +132,8 @@
     transition: transform .08s;
   }
   .chip[aria-pressed="true"] { background: var(--sun); border-color: var(--sun-deep); color: #3A2A00; box-shadow: 0 4px 0 var(--sun-deep); transform: translateY(-2px); }
+  .chip.next { position: relative; }
+  .chip.next::after { content: ""; position: absolute; inset: -5px; border: 3px dashed #E8384F; border-radius: 17px; pointer-events: none; }
   .chooser-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
   .seg button { border: 0; background: var(--paper); padding: 8px 14px; font-family: var(--display); font-weight: 600; font-size: 16px; color: var(--muted); }
@@ -373,6 +375,15 @@
   .team-next { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .team-next .meter { flex: 1 1 160px; }
 
+  /* Twisted Toons */
+  .twisted { background: #221D33; border-color: #3A3152; color: #F1EDFF; }
+  .twisted .muted { color: #B9B0D9; }
+  .twisted .tcard { background: #2E2744; border-color: #463C66; color: #F1EDFF; }
+  .twisted .tcard small { font-family: var(--body); font-weight: 400; font-size: 12px; color: #B9B0D9; }
+  .twisted .tcard.locked { color: #B9B0D9; }
+  .twisted .tcard.locked svg { filter: brightness(0) invert(.4); opacity: .75; }
+  .twisted .tcard.next { border-color: #E8384F; box-shadow: 0 0 0 3px rgba(232, 56, 79, .35); }
+
   /* New friend unlocked */
   .unlock-wrap { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(16, 22, 58, .55); }
   .unlock {
@@ -466,7 +477,7 @@
       <div class="buddy-fig" data-buddy aria-hidden="true"></div>
       <div class="say">
         <h2 id="homeHi">Which times tables today?</h2>
-        <p class="muted">Tap the numbers you want to practise. The yellow ones are switched on.</p>
+        <p class="muted">Tap the numbers you want to practise. The yellow ones are switched on. Harder tables earn double stars!</p>
       </div>
     </div>
     <div class="panel chooser">
@@ -524,6 +535,14 @@
         <span class="label" id="teamNextLabel"></span>
         <div class="meter" aria-hidden="true"><span id="teamNextBar" style="width:0%"></span></div>
       </div>
+    </div>
+    <div class="panel team twisted">
+      <div class="team-head">
+        <h3>Twisted Toons</h3>
+        <p class="muted">Each one hides in a harder table.</p>
+      </div>
+      <div class="team-grid" id="twistedGrid"></div>
+      <p class="muted" id="twistedNext"></p>
     </div>
   </section>
 
@@ -689,7 +708,7 @@
 
 <div class="unlock-wrap" id="unlockWrap" hidden>
   <div class="unlock" role="dialog" aria-modal="true" aria-labelledby="unlockTitle">
-    <p class="label">New friend unlocked!</p>
+    <p class="label" id="unlockLabel">New friend unlocked!</p>
     <div class="unlock-figs" id="unlockFigs" aria-hidden="true"></div>
     <h2 id="unlockTitle"></h2>
     <p class="muted" id="unlockText"></p>
@@ -735,6 +754,21 @@
     s.last = ok;
     stats[k] = s;
   }
+
+  // ---------- harder tables ----------
+  // The 1s, 2s, 5s and 10s have easy tricks. Facts without them earn double stars,
+  // and a round made only of tables the learner already knows gets the next harder
+  // table mixed in, so nobody can stay on the easy ones for ever.
+  const EASY = [1, 2, 5, 10];
+  const HARD_ORDER = [3, 4, 6, 7, 8, 9, 11, 12];
+  const isHard = (a, b) => !EASY.includes(a) && !EASY.includes(b);
+  const needed = () => Math.ceil(settings.upTo * 0.8);
+  function knownIn(t) { let k = 0; for (let m = 1; m <= settings.upTo; m++) if (level(t, m) === "known") k++; return k; }
+  // Tables whose Twisted Toon has been caught. Once caught it stays caught.
+  let caught = store.get("twisted:caught", null);
+  if (!Array.isArray(caught)) { caught = HARD_ORDER.filter((t) => knownIn(t) >= needed()); store.set("twisted:caught", caught); }
+  const comfortable = (t) => caught.includes(t) || knownIn(t) >= needed();
+  const nextChallenge = () => HARD_ORDER.find((t) => !comfortable(t)) || null;
 
   // ---------- sound ----------
   let audio = null;
@@ -884,6 +918,36 @@
       '<path d="M37 42 a5 4 0 0 0 10 0 Z M53 42 a5 4 0 0 0 10 0 Z" fill="#15121F"/><path d="M36 41 h12 M52 41 h12" stroke="#15121F" stroke-width="2" stroke-linecap="round"/>' +
       '<circle cx="36" cy="49" r="3" fill="#F4A6A6" opacity=".8"/><circle cx="64" cy="49" r="3" fill="#F4A6A6" opacity=".8"/>' + SMILE(51, 4) },
   ];
+  // ---------- Twisted Toons ----------
+  // Original drawings of twisted versions of eight friends, one hiding in each harder
+  // table: the friend faded, with ink dripping off the head, ringed eyes and a toothy grin.
+  const TW_EYE = (x, y) => '<circle cx="' + x + '" cy="' + y + '" r="8.5" fill="#15121F"/>' +
+    '<circle cx="' + x + '" cy="' + y + '" r="6.3" fill="none" stroke="#E8384F" stroke-width="2.4"/>' +
+    '<circle cx="' + x + '" cy="' + y + '" r="2.6" fill="none" stroke="#E8384F" stroke-width="1.4"/>';
+  const TW_GRIN = (y) => '<path d="M39 ' + y + ' Q50 ' + (y + 12) + ' 61 ' + y + ' Q50 ' + (y + 2) + ' 39 ' + y + ' Z" fill="#fff" ' + INK + '/>' +
+    '<path d="M41.5 ' + (y + 1.4) + ' L44 ' + (y + 5) + ' L46.5 ' + (y + 2) + ' L49 ' + (y + 6) + ' L51.5 ' + (y + 2) + ' L54 ' + (y + 5.6) + ' L56.5 ' + (y + 1.8) + ' L58.5 ' + (y + 3.6) + '" fill="none" stroke="#2B2640" stroke-width="1.3" stroke-linejoin="round"/>';
+  const TW_INK = (x1, x2, y) => {
+    const w = x2 - x1, at = (f) => (x1 + w * f).toFixed(1);
+    const drip = (f, len) => '<rect x="' + (x1 + w * f - 3).toFixed(1) + '" y="' + y + '" width="6" height="' + len + '" rx="3" fill="#15121F"/>';
+    return '<path d="M' + x1 + " " + (y + 2) + " Q" + at(0.15) + " " + (y - 9) + " " + at(0.35) + " " + (y - 4) + " Q" + at(0.55) + " " + (y - 11) + " " + at(0.75) + " " + (y - 4) +
+      " Q" + at(0.92) + " " + (y - 8) + " " + x2 + " " + (y + 2) + " Q" + at(0.5) + " " + (y + 7) + " " + x1 + " " + (y + 2) + ' Z" fill="#15121F"/>' +
+      drip(0.2, 12) + drip(0.5, 17) + drip(0.82, 9);
+  };
+  const TW_FADE = '<defs><filter id="twFade"><feColorMatrix type="saturate" values=".45"/></filter></defs>';
+  const TWISTED = [
+    { t: 3, of: "Boxten", eyes: [41, 59, 44], grin: 54, ink: [28, 72, 25] },
+    { t: 4, of: "Poppy", eyes: [42, 58, 47], grin: 56, ink: [33, 67, 28] },
+    { t: 6, of: "Cosmo", eyes: [41, 59, 42], grin: 52, ink: [24, 62, 27] },
+    { t: 7, of: "Shelly", eyes: [40, 60, 44], grin: 54, ink: [27, 69, 23] },
+    { t: 8, of: "Vee", eyes: [40, 60, 36], grin: 45, ink: [24, 76, 18] },
+    { t: 9, of: "Astro", eyes: [42, 60, 48], grin: 58, ink: [30, 70, 30] },
+    { t: 11, of: "Sprout", eyes: [42, 58, 39], grin: 51, ink: [30, 70, 24] },
+    { t: 12, of: "Dandy", eyes: [42, 58, 37], grin: 46, ink: [34, 66, 22] },
+  ].map((w) => Object.assign(w, {
+    name: "Twisted " + w.of,
+    svg: TW_FADE + '<g filter="url(#twFade)">' + TOONS.find((x) => x.name === w.of).svg + "</g>" +
+      TW_INK(...w.ink) + TW_EYE(w.eyes[0], w.eyes[2]) + TW_EYE(w.eyes[1], w.eyes[2]) + TW_GRIN(w.grin),
+  }));
   // ---------- Toon team and buddy ----------
   // Dandy, Astro, Pebble and Shelly are on the team from the start. The rest
   // join as stars add up. Stars are never spent, so friends never leave.
@@ -949,12 +1013,14 @@
   let unlockBack = null;
   function checkUnlocks() {
     const have = team().length, seen = store.get("toons:seen", null);
-    if (seen == null || seen > have) { store.set("toons:seen", have); return; }
-    if (have === seen) return;
+    if (seen == null || seen > have) { store.set("toons:seen", have); return checkTwisted(); }
+    if (have === seen) return checkTwisted();
     store.set("toons:seen", have);
     const fresh = team().slice(seen);
     renderToons();
     const one = fresh.length === 1, newest = fresh[fresh.length - 1];
+    $("#unlockLabel").textContent = "New friend unlocked!";
+    $("#unlockBuddy").hidden = false;
     $("#unlockFigs").style.setProperty("--uw", one ? "150px" : fresh.length <= 3 ? "110px" : "80px");
     $("#unlockFigs").innerHTML = fresh.map(toonSvg).join("");
     $("#unlockTitle").textContent = one ? newest.name + " joined your team!" : fresh.map((t) => t.name).join(", ").replace(/, ([^,]*)$/, " and $1") + " joined your team!";
@@ -971,6 +1037,42 @@
     $("#unlockWrap").hidden = true;
     if (current === "home") renderHome();
     if (unlockBack && unlockBack.focus) unlockBack.focus({ preventScroll: true });
+    checkTwisted();
+  }
+  // Announces each Twisted Toon once its table is learned, after any new friends.
+  function checkTwisted() {
+    const fresh = TWISTED.filter((w) => !caught.includes(w.t) && knownIn(w.t) >= needed());
+    if (!fresh.length) return;
+    caught = caught.concat(fresh.map((w) => w.t));
+    store.set("twisted:caught", caught);
+    const one = fresh.length === 1, nc = nextChallenge();
+    $("#unlockLabel").textContent = one ? "Twisted Toon caught!" : "Twisted Toons caught!";
+    $("#unlockFigs").style.setProperty("--uw", one ? "150px" : fresh.length <= 3 ? "110px" : "80px");
+    $("#unlockFigs").innerHTML = fresh.map(toonSvg).join("");
+    $("#unlockTitle").textContent = "You caught " + listWords(fresh.map((w) => w.name)) + "!";
+    $("#unlockText").textContent = "You learned the " + listWords(fresh.map((w) => w.t)) + " times " + (one ? "table" : "tables") + ". " +
+      (nc ? "Another Twisted Toon is hiding in the " + nc + "s. Can you catch it?" : "That's every Twisted Toon. You're a times tables champion!");
+    $("#unlockBuddy").hidden = true;
+    unlockBack = document.activeElement;
+    $("#unlockWrap").hidden = false;
+    sfx.fanfare(); confetti();
+    $("#unlockOk").focus();
+  }
+  function renderTwisted() {
+    const grid = $("#twistedGrid"); grid.innerHTML = "";
+    const nc = nextChallenge(), need = needed();
+    TWISTED.forEach((w) => {
+      const got = caught.includes(w.t), k = Math.min(knownIn(w.t), need);
+      const c = document.createElement("div");
+      c.className = "tcard" + (got ? "" : " locked") + (w.t === nc ? " next" : "");
+      c.setAttribute("role", "img");
+      c.setAttribute("aria-label", got ? w.name + ", caught in the " + w.t + "s" : "A Twisted Toon hiding in the " + w.t + "s. You know " + k + " of " + need + " facts.");
+      c.innerHTML = toonSvg(w) + "<span>" + (got ? w.of : "?") + "</span><small>" + (got ? "Caught!" : w.t + "s · " + k + "/" + need) + "</small>";
+      grid.appendChild(c);
+    });
+    $("#twistedNext").textContent = nc
+      ? "Next challenge: the " + nc + "s. Learn " + need + " of its facts to catch the Twisted Toon hiding there."
+      : "You caught every Twisted Toon!";
   }
   $("#unlockOk").addEventListener("click", closeUnlock);
   $("#unlockWrap").addEventListener("click", (e) => { if (e.target.id === "unlockWrap") closeUnlock(); });
@@ -1014,12 +1116,13 @@
   function renderHome() {
     const chips = $("#tableChips");
     chips.innerHTML = "";
+    const nc = nextChallenge();
     for (let n = 1; n <= 12; n++) {
       const b = document.createElement("button");
-      b.className = "chip";
+      b.className = "chip" + (n === nc ? " next" : "");
       b.textContent = n;
       b.setAttribute("aria-pressed", settings.tables.includes(n));
-      b.setAttribute("aria-label", n + " times table");
+      b.setAttribute("aria-label", n + " times table" + (n === nc ? ", your next challenge" : ""));
       b.addEventListener("click", () => {
         sfx.tap();
         settings.tables = settings.tables.includes(n) ? settings.tables.filter((x) => x !== n) : [...settings.tables, n].sort((a, b) => a - b);
@@ -1030,9 +1133,14 @@
     }
     $("#upTo10").setAttribute("aria-pressed", settings.upTo === 10);
     $("#upTo12").setAttribute("aria-pressed", settings.upTo === 12);
-    $("#chooserHint").textContent = settings.tables.length
+    let hint = settings.tables.length
       ? "Practising the " + listWords(settings.tables) + " times " + (settings.tables.length > 1 ? "tables" : "table") + "."
       : "Switch on at least one table to practise.";
+    if (settings.tables.length && nc) {
+      if (settings.tables.includes(nc)) hint += " A Twisted Toon is hiding in the " + nc + "s!";
+      else if (settings.tables.every(comfortable)) hint += " You know these well, so some " + nc + "s will sneak in. A Twisted Toon is hiding there!";
+    }
+    $("#chooserHint").textContent = hint;
 
     // known count over unique facts
     const N = settings.upTo; let total = 0, known = 0;
@@ -1045,6 +1153,7 @@
     renderStars();
     $("#homeHi").textContent = "Hi, I'm " + buddy().name + "! Which times tables shall we do today?";
     renderTeam();
+    renderTwisted();
   }
   $("#trickyBtn").addEventListener("click", () => { sfx.tap(); startQuiz("practice", [], trickyFacts()); });
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -1184,10 +1293,13 @@
   // facts: optional list of [a, b] pairs to draw from instead of whole tables
   function startQuiz(mode, tables, facts) {
     stopTimer();
+    // Only tables the learner already knows? Every third question comes from the next harder table.
+    const nc = nextChallenge();
+    const challenge = !facts && nc && !tables.includes(nc) && tables.every(comfortable) ? nc : null;
     quiz = {
       mode, tables: tables.slice(), facts: facts || null, n: 0, total: mode === "practice" ? PRACTICE_LEN : Infinity,
       right: 0, asked: 0, missed: [], retry: [], last: null, a: 0, b: 0, answer: "", state: "ask",
-      earned: 0, endAt: 0, missing: false, shownAt: 0,
+      earned: 0, endAt: 0, missing: false, shownAt: 0, challenge, isChallenge: false,
     };
     show("quiz");
     $("#quizCounter").classList.remove("low");
@@ -1213,13 +1325,14 @@
     // it comes back straight away so it never gets dropped.
     const left = quiz.total - quiz.n;
     if (quiz.retry.length && (quiz.retry[0].due <= quiz.n || left <= quiz.retry.length)) {
-      quiz.fromRetry = true;
+      quiz.fromRetry = true; quiz.isChallenge = false;
       return quiz.retry.shift().fact;
     }
     quiz.fromRetry = false;
+    quiz.isChallenge = !!quiz.challenge && quiz.n % 3 === 2;
     const cands = [];
     if (quiz.facts) quiz.facts.forEach(([t, m]) => cands.push({ t, m }));
-    else for (const t of quiz.tables) for (let m = 1; m <= settings.upTo; m++) cands.push({ t, m });
+    else for (const t of (quiz.isChallenge ? [quiz.challenge] : quiz.tables)) for (let m = 1; m <= settings.upTo; m++) cands.push({ t, m });
     const pool = [];
     let sum = 0;
     for (const { t, m } of cands) {
@@ -1252,13 +1365,14 @@
     // Once a fact is familiar, sometimes ask for the missing number (? × 7 = 56).
     // This is the first step toward division.
     const lv = level(a, b);
-    const missing = quiz.mode === "practice" && !quiz.fromRetry && (lv === "known" || lv === "learning") && Math.random() < 0.25;
+    const missing = quiz.mode === "practice" && !quiz.fromRetry && !quiz.isChallenge && (lv === "known" || lv === "learning") && Math.random() < 0.25;
     Object.assign(quiz, { a, b, missing, answer: "", state: "ask", last: factKey(a, b), shownAt: performance.now() });
     renderSum();
     const card = $("#questionCard");
     card.className = "question";
     void card.offsetWidth; card.classList.add("pop");
-    if (quiz.mode === "clock") {
+    if (quiz.isChallenge) say("Challenge! A Twisted Toon is hiding in the " + quiz.challenge + "s…");
+    else if (quiz.mode === "clock") {
       const left = (quiz.endAt - Date.now()) / 1000;
       say(quiz.right ? quiz.right + " right so far!" + (left <= 10 ? " Hurry!" : " Keep going!") : "Go go go! As many as you can!");
     } else say(missing ? "Which number is hiding?" : quiz.n === 0 ? "Hi, I'm " + buddy().name + ". Let's do this!" : ASK[Math.floor(Math.random() * ASK.length)]);
@@ -1296,14 +1410,15 @@
     quiz.n++; quiz.asked++;
     record(a, b, ok, ms);
     if (ok) {
-      quiz.right++; quiz.earned++; stars++;
+      const gain = isHard(a, b) ? 2 : 1;
+      quiz.right++; quiz.earned += gain; stars += gain;
       card.className = "question good pop";
       const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
       say(ms <= QUICK_MS ? "Quick! " + praise
         : ms > SLOW_MS ? "Right! Next time, try to remember it faster."
         : praise, "good");
       buddyMove();
-      toonCheer(ms <= QUICK_MS ? "Quick!" : PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+      toonCheer(gain === 2 ? "Double stars!" : ms <= QUICK_MS ? "Quick!" : PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       sfx.right(); renderStars(); save();
       quiz.state = "wait";
       setTimeout(() => { if (quiz && quiz.state === "wait" && current === "quiz") nextQuestion(); }, quiz.mode === "clock" ? 450 : 750);
@@ -1657,7 +1772,7 @@
     const p = document.createElement("p"); p.textContent = "This clears all squares and stars. Are you sure?";
     const yes = document.createElement("button"); yes.className = "btn danger"; yes.textContent = "Yes, clear it";
     const no = document.createElement("button"); no.className = "btn ghost"; no.textContent = "Keep my progress";
-    yes.addEventListener("click", () => { stats = {}; stars = 0; save(); store.set("toons:seen", null); renderStars(); renderToons(); renderProgress(); });
+    yes.addEventListener("click", () => { stats = {}; stars = 0; caught = []; save(); store.set("toons:seen", null); store.set("twisted:caught", caught); renderStars(); renderToons(); renderProgress(); });
     no.addEventListener("click", () => resetUI(false));
     area.append(p, yes, no); no.focus();
   }
